@@ -121,7 +121,12 @@ COPY --from=0 ${BABELFISH_HOME} .
 # Install runtime dependencies
 RUN apt update && apt install -y --no-install-recommends\
 	libssl1.1 openssl libldap-2.4-2 libxml2 libpam0g uuid libossp-uuid16\
-	libxslt1.1 libicu66 libpq5 unixodbc curl
+	libxslt1.1 libicu66 libpq5 unixodbc curl openjdk-8-jre
+
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | tee /etc/apt/trusted.gpg.d/microsoft.asc
+RUN curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | tee /etc/apt/sources.list.d/mssql-release.list
+RUN apt-get update && ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev
+
 
 # Enable data volume
 ENV BABELFISH_DATA=/data/babelfish
@@ -133,10 +138,6 @@ RUN mkdir ${BABELFISH_DATA}
 RUN adduser postgres --home ${BABELFISH_DATA}
 RUN chown postgres ${BABELFISH_DATA}
 RUN chmod 750 ${BABELFISH_DATA}
-
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | tee /etc/apt/trusted.gpg.d/microsoft.asc
-RUN curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | tee /etc/apt/sources.list.d/mssql-release.list
-RUN apt-get update && ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev
 
 # Change to postgres user
 USER postgres
