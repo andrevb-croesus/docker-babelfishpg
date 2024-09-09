@@ -3,7 +3,7 @@ FROM ubuntu:20.04
 
 # Specify babelfish version by using a tag from:
 # https://github.com/babelfish-for-postgresql/babelfish-for-postgresql/tags
-ARG BABELFISH_VERSION=BABEL_2_3_0__PG_14_6
+ARG BABELFISH_VERSION=BABEL_4_1_1__PG_16_2
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV BABELFISH_HOME=/opt/babelfish
@@ -34,6 +34,8 @@ RUN tar -xvzf ${BABELFISH_FILE}
 
 # Set environment variables
 ENV PG_SRC=/workplace/${BABELFISH_VERSION}
+
+RUN sed -i '/TargetEntry \*tle = (TargetEntry \*)lfirst(elements);/a \\t\t\tif(tle->resname != NULL && !tle->resjunk)\n\t\t\t\ttle->resname = downcase_identifier(tle->resname, strlen(tle->resname), false, false);' /workplace/${BABELFISH_VERSION}/contrib/babelfishpg_tsql/src/pl_handler.c
 
 WORKDIR ${PG_SRC}
 
@@ -119,7 +121,7 @@ COPY --from=0 ${BABELFISH_HOME} .
 # Install runtime dependencies
 RUN apt update && apt install -y --no-install-recommends\
 	libssl1.1 openssl libldap-2.4-2 libxml2 libpam0g uuid libossp-uuid16\
-	libxslt1.1 libicu66 libpq5 unixodbc
+	libxslt1.1 libicu66 libpq5 unixodbc curl
 
 # Enable data volume
 ENV BABELFISH_DATA=/data/babelfish
@@ -131,6 +133,10 @@ RUN mkdir ${BABELFISH_DATA}
 RUN adduser postgres --home ${BABELFISH_DATA}
 RUN chown postgres ${BABELFISH_DATA}
 RUN chmod 750 ${BABELFISH_DATA}
+
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | tee /etc/apt/trusted.gpg.d/microsoft.asc
+RUN curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | tee /etc/apt/sources.list.d/mssql-release.list
+RUN apt-get update && ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev
 
 # Change to postgres user
 USER postgres
